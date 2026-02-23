@@ -136,10 +136,10 @@ globalThis['darkEdif'] = (globalThis['darkEdif'] && globalThis['darkEdif'].sdkVe
 				setNameJSONPropIndex: rsDV.getUint16(1 + (2 * 3), true),
 				// Current set index selected (0+), present at runtime too, but not used there
 				getIndexSelected: function() {
-				    return rsDV.getUint16(1 + (2 * 4), true);
+					return rsDV.getUint16(1 + (2 * 4), true);
 				},
 				setIndexSelected: function(i) {
-				    rsDV.setUint16(1 + (2 * 4), i, true);
+					rsDV.setUint16(1 + (2 * 4), i, true);
 				},
 				// Set name, as specified in JSON. Don't confuse with user-specified set name.
 				setName: that.textDecoder.decode(data.propData.slice(1 + (2 * 5))),
