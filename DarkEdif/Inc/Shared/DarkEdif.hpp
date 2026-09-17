@@ -185,6 +185,22 @@ namespace DarkEdif {
 		std::vector<DebugItem> debugItems;
 		std::vector<std::uint16_t> debugItemIDs;
 
+		// ============================================================
+		// Debugger folders
+		// ============================================================
+
+		static constexpr std::uint16_t NoFolder =
+			std::numeric_limits<std::uint16_t>::max();
+
+		std::uint16_t currentFolderID = NoFolder;
+
+		// Adds an item to the Fusion debugger tree, optionally
+		// associating it with the currently active folder.
+		void AppendItemToDebugTree(
+			std::uint16_t itemID,
+			bool editable
+		);
+
 		// CF2.5+ text box used by debugger
 		static HWND CF25PlusEditBoxHandle;
 		static bool CF25PlusEditBoxHandleSearched;
@@ -200,6 +216,24 @@ namespace DarkEdif {
 #endif // EditorBuild
 
 	public:
+		/**
+		* Adds a folder to the Fusion debugger.
+		*
+		* Subsequent items added with AddItemToDebugger() will be
+		* displayed inside this folder until another folder is selected
+		* or EndFolderToDebugger() is called.
+		*
+		* @param folderName UTF-8 folder name displayed in Fusion debugger.
+		*/
+		void AddFolderToDebugger(
+			const std::string_view folderName
+		);
+
+		/**
+		* Stops adding debugger items to the current folder.
+		* Subsequent items will be displayed at the debugger root.
+		*/
+		void EndFolderToDebugger();
 
 		/** Adds textual property to Fusion debugger display.
 		 * @param prefix			 The text to prefix the int value with; for example, _T("Value: "sv)
@@ -308,7 +342,7 @@ namespace DarkEdif {
 			// Win 11 is major ver 10, like Win10, but starts at build number 22000+
 			Win11 = 0x0A0055F0
 		};
-		
+
 		// OS version; compare with WinOSVersion enum, use NTDDI_XX defines
 		// or use OSVER(OSVersion), SPVER() for service pack, SUBVER() for sub-version like 22H2.
 		// https://learn.microsoft.com/en-gb/windows/win32/winprog/using-the-windows-headers?#:~:text=describe%20other%20macros

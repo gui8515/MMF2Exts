@@ -4028,7 +4028,7 @@ BOOL DarkEdif::DLL::DLL_EditProp(mv* mV, EDITDATA*& edPtr, unsigned int PropID)
 		// by checking data size against numImages stored in first short; if there's more data,
 		// it's image titles.
 		// Note moving frames was CF2.5, not in MMF2 SDK headers.
-		//if (jsonProp["AllowRename"sv]) 
+		//if (jsonProp["AllowRename"sv])
 		//	opts |= PictureEditOptions::CanRenameFrames | PictureEditOptions::CannotMoveFrames;
 
 		// Don't allow moving objects if image titles are set
@@ -6557,6 +6557,93 @@ namespace DarkEdif
 		DieIfCallerIsNotMainThread("FusionDebugger");
 		return debugItemIDs.data();
 	}
+	void FusionDebugger::AppendItemToDebugTree(
+		const std::uint16_t itemID,
+		const bool editable
+	) {
+		DieIfCallerIsNotMainThread("FusionDebugger");
+
+		const std::uint16_t treeItemID =
+			itemID |
+			(editable ? DB_EDITABLE : 0);
+
+		// debugItemIDs always ends with DB_END.
+		if (debugItemIDs.empty()) {
+			debugItemIDs.push_back(DB_END);
+		}
+
+		if (currentFolderID != NoFolder) {
+
+			// Replace DB_END with the parent declaration.
+			debugItemIDs.back() =
+				static_cast<std::uint16_t>(
+					DB_PARENT | currentFolderID
+					);
+
+			// Add child.
+			debugItemIDs.push_back(treeItemID);
+
+			// Restore terminator.
+			debugItemIDs.push_back(DB_END);
+		}
+		else {
+
+			// Normal root item.
+			debugItemIDs.back() = treeItemID;
+
+			debugItemIDs.push_back(DB_END);
+		}
+	}
+	void FusionDebugger::AddFolderToDebugger(
+		const std::string_view folderName
+	) {
+		DieIfCallerIsNotMainThread("FusionDebugger");
+
+		if (folderName.empty()) {
+			throw std::invalid_argument(
+				"Fusion debugger folder name cannot be empty."
+			);
+		}
+
+		// IDs must remain below the DB_EDITABLE flag range.
+		if (debugItems.size() >= 128) {
+			throw std::runtime_error(
+				"Fusion debugger cannot contain more than 128 items and folders."
+			);
+		}
+
+		const std::tstring folderText =
+			DarkEdif::UTF8ToTString(folderName);
+
+		/*
+			The folder itself needs a DebugItem ID because Fusion calls
+			GetDebugItem() for the parent ID to obtain its displayed text.
+
+			It is NOT added directly to debugItemIDs; it only becomes
+			visible when referenced through DB_PARENT.
+		*/
+		debugItems.push_back(
+			DebugItem(
+				folderText,
+				_T(""),
+				nullptr,
+				nullptr,
+				0,
+				nullptr
+			)
+		);
+
+		currentFolderID =
+			static_cast<std::uint16_t>(
+				debugItems.size() - 1
+				);
+	}
+	void FusionDebugger::EndFolderToDebugger()
+	{
+		DieIfCallerIsNotMainThread("FusionDebugger");
+
+		currentFolderID = NoFolder;
+	}
 #ifndef _UNICODE
 	static constexpr std::tstring_view ellipse("..."sv);
 #else
@@ -6694,9 +6781,15 @@ namespace DarkEdif
 		}
 
 		// End it with DB_END, and second-to-last item is the new debug item ID
-		debugItemIDs.push_back(DB_END);
-		// If the item is editable, set the DB_EDITABLE flag
-		debugItemIDs[debugItemIDs.size() - 2] = (((std::uint16_t)debugItems.size()) - 1) | (saveUserInputToExt != NULL ? DB_EDITABLE : 0);
+		const std::uint16_t itemID =
+			static_cast<std::uint16_t>(
+				debugItems.size() - 1
+				);
+
+		AppendItemToDebugTree(
+			itemID,
+			saveUserInputToExt != nullptr
+		);
 	}
 
 	void FusionDebugger::AddItemToDebugger(
@@ -6726,9 +6819,15 @@ namespace DarkEdif
 
 		debugItems.push_back(DebugItem(prefix, initialInt, getLatestFromExt, saveUserInputToExt, refreshMS, userSuppliedName));
 		// End it with DB_END, and second-to-last item is the new debug item ID
-		debugItemIDs.push_back(DB_END);
-		// If the item is editable, set the DB_EDITABLE flag
-		debugItemIDs[debugItemIDs.size() - 2] = (((std::uint16_t)debugItems.size()) - 1) | (saveUserInputToExt != NULL ? DB_EDITABLE : 0);
+		const std::uint16_t itemID =
+			static_cast<std::uint16_t>(
+				debugItems.size() - 1
+				);
+
+		AppendItemToDebugTree(
+			itemID,
+			saveUserInputToExt != nullptr
+		);
 	}
 
 	void FusionDebugger::UpdateItemInDebugger(const char *userSuppliedName, int newValue)
@@ -6849,7 +6948,15 @@ namespace DarkEdif
 		// DB IDs are 16-bit, so it might be possible to skip all IDs with 0x80's and use IDs 0-127 then 256-383, etc,
 		// leaving 0x80 bit untouched, but haven't tested that.
 		debugItems.reserve(128);
-		debugItemIDs.reserve(129);
+
+		// A child inside a folder requires:
+		// DB_PARENT | folderID
+		// childID
+		//
+		// Worst case therefore needs approximately 2 entries per DebugItem,
+		// plus the DB_END terminator.
+		debugItemIDs.reserve(257);
+
 		debugItemIDs.push_back(DB_END);
 
 		// We init here, because FusionDebugger is created with CreateRunObject.

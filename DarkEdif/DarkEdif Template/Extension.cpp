@@ -36,13 +36,15 @@ Extension::Extension(const EDITDATA* const edPtr, void* const objCExtPtr, const 
 
 		It's the only place you'll get access to edPtr at runtime, so you should transfer
 		anything from edPtr to the extension class here.
-
 	*/
 
 	// Don't use "this" inside these lambda functions, always ext.
 	// There can be nothing in the [] section of the lambda.
 	// If you're not sure about lambdas, you can remove this debugger stuff without any side effects;
 	// it's just an example of how to use the debugger. You can view it in Fusion itself to see.
+
+	FusionDebugger.AddFolderToDebugger("Example");
+
 	FusionDebugger.AddItemToDebugger(
 		// Prefix before debugger value, and initial text; if we pass null for initial text, it uses reader func
 		_T("My text is: "sv), exampleDebuggerTextItem.c_str(),
@@ -56,6 +58,8 @@ Extension::Extension(const EDITDATA* const edPtr, void* const objCExtPtr, const 
 			return true; // accept the changes
 		}, 500, NULL
 	);
+
+	FusionDebugger.EndFolderToDebugger();
 
 	// Read object DarkEdif properties; you can pass property name, or property index
 	// This will work on all platforms the same way.
