@@ -6599,12 +6599,6 @@ namespace DarkEdif
 	) {
 		DieIfCallerIsNotMainThread("FusionDebugger");
 
-		if (folderName.empty()) {
-			throw std::invalid_argument(
-				"Fusion debugger folder name cannot be empty."
-			);
-		}
-
 		// IDs must remain below the DB_EDITABLE flag range.
 		if (debugItems.size() >= 128) {
 			throw std::runtime_error(
