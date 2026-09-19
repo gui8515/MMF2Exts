@@ -6516,6 +6516,13 @@ namespace DarkEdif
 	// debugger doesn't exist at edittime, no reaction is possible.
 
 	struct FusionDebuggerAdmin { };
+	void FusionDebugger::AddFolderToDebugger(
+		const std::string_view
+	) { /* no op in runtime */ }
+	void FusionDebugger::EndFolderToDebugger()
+	{ /* no op in runtime */ }
+	void FusionDebugger::EndAllFoldersToDebugger()
+	{ /* no op in runtime */ }
 	void FusionDebugger::AddItemToDebugger(
 		const std::tstring_view, const TCHAR *,
 		void (*)(Extension *const, std::tstring &),
@@ -6572,27 +6579,23 @@ namespace DarkEdif
 			debugItemIDs.push_back(DB_END);
 		}
 
-		if (currentFolderID != NoFolder) {
+		// Remove DB_END temporarily.
+		debugItemIDs.pop_back();
 
-			// Replace DB_END with the parent declaration.
-			debugItemIDs.back() =
+		// Add the complete folder path.
+		for (const std::uint16_t folderID : folderStack) {
+			debugItemIDs.push_back(
 				static_cast<std::uint16_t>(
-					DB_PARENT | currentFolderID
-					);
-
-			// Add child.
-			debugItemIDs.push_back(treeItemID);
-
-			// Restore terminator.
-			debugItemIDs.push_back(DB_END);
+					DB_PARENT | folderID
+					)
+			);
 		}
-		else {
 
-			// Normal root item.
-			debugItemIDs.back() = treeItemID;
+		// Add the actual debugger item.
+		debugItemIDs.push_back(treeItemID);
 
-			debugItemIDs.push_back(DB_END);
-		}
+		// Restore terminator.
+		debugItemIDs.push_back(DB_END);
 	}
 	void FusionDebugger::AddFolderToDebugger(
 		const std::string_view folderName
@@ -6613,8 +6616,8 @@ namespace DarkEdif
 			The folder itself needs a DebugItem ID because Fusion calls
 			GetDebugItem() for the parent ID to obtain its displayed text.
 
-			It is NOT added directly to debugItemIDs; it only becomes
-			visible when referenced through DB_PARENT.
+			Folder hierarchy is not added to debugItemIDs here. The complete
+			active folder path is written when a debugger item is added.
 		*/
 		debugItems.push_back(
 			DebugItem(
@@ -6627,16 +6630,28 @@ namespace DarkEdif
 			)
 		);
 
-		currentFolderID =
+		const std::uint16_t folderID =
 			static_cast<std::uint16_t>(
 				debugItems.size() - 1
 				);
+
+		// Make the newly created folder the current folder.
+		// Its hierarchy is written to the debugger tree when an item is added.
+		folderStack.push_back(folderID);
 	}
 	void FusionDebugger::EndFolderToDebugger()
 	{
 		DieIfCallerIsNotMainThread("FusionDebugger");
 
-		currentFolderID = NoFolder;
+		if (!folderStack.empty()) {
+			folderStack.pop_back();
+		}
+	}
+	void FusionDebugger::EndAllFoldersToDebugger()
+	{
+		DieIfCallerIsNotMainThread("FusionDebugger");
+
+		folderStack.clear();
 	}
 #ifndef _UNICODE
 	static constexpr std::tstring_view ellipse("..."sv);

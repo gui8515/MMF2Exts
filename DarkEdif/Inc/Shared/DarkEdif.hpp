@@ -189,13 +189,10 @@ namespace DarkEdif {
 		// Debugger folders
 		// ============================================================
 
-		static constexpr std::uint16_t NoFolder =
-			std::numeric_limits<std::uint16_t>::max();
+		std::vector<std::uint16_t> folderStack;
 
-		std::uint16_t currentFolderID = NoFolder;
-
-		// Adds an item to the Fusion debugger tree, optionally
-		// associating it with the currently active folder.
+		// Adds an item to the Fusion debugger tree, including the
+		// complete path of currently active folders.
 		void AppendItemToDebugTree(
 			std::uint16_t itemID,
 			bool editable
@@ -217,11 +214,13 @@ namespace DarkEdif {
 
 	public:
 		/**
-		* Adds a folder to the Fusion debugger.
+		* Adds a folder to the Fusion debugger and makes it the current folder.
 		*
-		* Subsequent items added with AddItemToDebugger() will be
-		* displayed inside this folder until another folder is selected
-		* or EndFolderToDebugger() is called.
+		* If another folder is already active, the new folder is nested inside it.
+		* Subsequent debugger items and folders are added to the current folder
+		* until EndFolderToDebugger() is called.
+		*
+		* Empty folder names are allowed.
 		*
 		* @param folderName UTF-8 folder name displayed in Fusion debugger.
 		*/
@@ -230,10 +229,21 @@ namespace DarkEdif {
 		);
 
 		/**
-		* Stops adding debugger items to the current folder.
-		* Subsequent items will be displayed at the debugger root.
+		* Ends the current debugger folder.
+		*
+		* If the current folder is nested, its parent folder becomes current again.
+		* If there is no parent folder, subsequent items are added at the debugger root.
+		* Calling this function when no folder is active has no effect.
 		*/
 		void EndFolderToDebugger();
+
+		/**
+		* Ends all currently active debugger folders.
+		*
+		* Subsequent debugger items and folders will be added at the debugger root.
+		* Calling this function when no folder is active has no effect.
+		*/
+		void EndAllFoldersToDebugger();
 
 		/** Adds textual property to Fusion debugger display.
 		 * @param prefix			 The text to prefix the int value with; for example, _T("Value: "sv)

@@ -43,35 +43,32 @@ Extension::Extension(const EDITDATA* const edPtr, void* const objCExtPtr, const 
 	// If you're not sure about lambdas, you can remove this debugger stuff without any side effects;
 	// it's just an example of how to use the debugger. You can view it in Fusion itself to see.
 
-	FusionDebugger.AddFolderToDebugger("");
+	// Debugger folders can be nested. Items added while a folder is active
+	// are displayed inside the current folder.
+	FusionDebugger.AddFolderToDebugger("Example");
+	FusionDebugger.AddFolderToDebugger("Text");
 
 	FusionDebugger.AddItemToDebugger(
-		_T("First: "sv),
-		exampleDebuggerTextItem.c_str(),
+		// Prefix before debugger value, and initial text; if we pass null for initial text, it uses reader func
+		_T("My text is: "sv), exampleDebuggerTextItem.c_str(),
+		// Reader function for your debug item
 		[](Extension* const ext, std::tstring& writeTo) {
 			writeTo = ext->exampleDebuggerTextItem;
 		},
-		nullptr,
-			500,
-			nullptr
-			);
-
-	FusionDebugger.EndFolderToDebugger();
-
-	FusionDebugger.AddFolderToDebugger("");
-
-	FusionDebugger.AddItemToDebugger(
-		_T("Second: "sv),
-		exampleDebuggerTextItem.c_str(),
-		[](Extension* const ext, std::tstring& writeTo) {
-			writeTo = ext->exampleDebuggerTextItem;
+		// Writer function (can be null if you don't want user to be able to edit it in debugger)
+			[](Extension* const ext, std::tstring& newText) {
+			ext->exampleDebuggerTextItem = newText;
+			return true; // Accept the changes
 		},
-		nullptr,
 			500,
-			nullptr
+			NULL
 			);
 
+	// End the current folder ("Text") and return to its parent ("Example").
 	FusionDebugger.EndFolderToDebugger();
+
+	// End all remaining folders and return directly to the debugger root.
+	FusionDebugger.EndAllFoldersToDebugger();
 
 	// Read object DarkEdif properties; you can pass property name, or property index
 	// This will work on all platforms the same way.

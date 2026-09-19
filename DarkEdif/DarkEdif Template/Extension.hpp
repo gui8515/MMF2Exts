@@ -44,8 +44,8 @@ public:
 
 	// To add items to the Fusion Debugger, just uncomment this line.
 	DarkEdif::FusionDebugger FusionDebugger;
-	// After enabling it, you run FusionDebugger.AddItemToDebugger() inside Extension's constructor
-	// As an example:
+	// Add debugger items and optional folders inside Extension's constructor.
+	// See Extension.cpp for an example.
 	std::tstring exampleDebuggerTextItem;
 
 
