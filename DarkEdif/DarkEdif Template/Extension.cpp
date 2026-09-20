@@ -56,13 +56,11 @@ Extension::Extension(const EDITDATA* const edPtr, void* const objCExtPtr, const 
 			writeTo = ext->exampleDebuggerTextItem;
 		},
 		// Writer function (can be null if you don't want user to be able to edit it in debugger)
-			[](Extension* const ext, std::tstring& newText) {
-			ext->exampleDebuggerTextItem = newText;
-			return true; // Accept the changes
-		},
-			500,
-			NULL
-			);
+		[](Extension* const ext, std::tstring& newText) {
+		ext->exampleDebuggerTextItem = newText;
+		return true; // Accept the changes
+		}, 500, NULL
+	);
 
 	// End the current folder ("Text") and return to its parent ("Example").
 	FusionDebugger.EndFolderToDebugger();
